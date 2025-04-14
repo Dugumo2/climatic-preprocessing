@@ -19,11 +19,25 @@ public class MeteorologyDataMergerManualTest {
      * 主方法，可以选择运行单时次测试或多时次测试
      */
     public static void main(String[] args) throws IOException {
-            // 运行多时次测试
-            testMultipleTimeDataMerging();
-
-            // 运行单时次测试
-//            testSingleTimeDataMerging();
+        if (args.length > 0) {
+            switch (args[0].toLowerCase()) {
+                case "single":
+                    testSingleTimeDataMerging();
+                    break;
+                case "multiple":
+                    testMultipleTimeDataMerging();
+                    break;
+                case "meteorology":
+                    testMeteorologyDayProcessing();
+                    break;
+                default:
+                    System.out.println("未知的测试类型: " + args[0]);
+                    System.out.println("可用选项: single, multiple, meteorology");
+            }
+        } else {
+            // 默认运行气象一天测试
+            testMeteorologyDayProcessing();
+        }
     }
     
     /**
@@ -224,5 +238,104 @@ public class MeteorologyDataMergerManualTest {
 
         System.out.println("\n=== 多时次测试完成 ===");
         System.out.println("输出文件位置: " + outputFilePath);
+    }
+
+    /**
+     * 测试气象一天数据处理功能
+     * 从指定目录读取多个时次的数据文件，按照气象一天合并处理后生成多个CSV文件
+     */
+    public static void testMeteorologyDayProcessing() throws IOException {
+        System.out.println("=== 开始气象一天数据合并测试 ===");
+
+        // 指定实际目录路径
+        String plotDirPath = "F:\\2024大创\\202406\\SURF\\plot";  // 替换为您实际的目录路径
+        String rainDirPath = "F:\\2024大创\\202406\\SURF\\rain1-p";
+        String rhDirPath = "F:\\2024大创\\202406\\SURF\\rh-p";
+        String outputDirPath = "F:\\2024大创\\202406\\test\\meteorology_days";
+
+        // 确认目录存在
+        File plotDir = new File(plotDirPath);
+        File rainDir = new File(rainDirPath);
+        File rhDir = new File(rhDirPath);
+        File outputDir = new File(outputDirPath);
+
+        if (!plotDir.exists() || !plotDir.isDirectory() ||
+            !rainDir.exists() || !rainDir.isDirectory() ||
+            !rhDir.exists() || !rhDir.isDirectory()) {
+            System.err.println("错误：输入目录不存在或不是有效目录!");
+            System.err.println("地面填图数据目录: " + plotDirPath + (plotDir.exists() && plotDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("降水数据目录: " + rainDirPath + (rainDir.exists() && rainDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("相对湿度数据目录: " + rhDirPath + (rhDir.exists() && rhDir.isDirectory() ? " [有效]" : " [无效]"));
+            return;
+        }
+
+        // 确保输出目录存在
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+
+        System.out.println("使用以下目录进行处理:");
+        System.out.println("地面填图数据目录: " + plotDirPath);
+        System.out.println("降水数据目录: " + rainDirPath);
+        System.out.println("相对湿度数据目录: " + rhDirPath);
+        System.out.println("输出目录: " + outputDirPath);
+
+        System.out.println("开始调用气象一天数据合并处理方法...");
+
+        // 调用气象一天数据合并方法
+        try {
+            MeteorologyDataMerger.processMeteorologyDays(
+                    plotDirPath,
+                    rainDirPath,
+                    rhDirPath,
+                    outputDirPath
+            );
+
+            System.out.println("气象一天数据合并处理成功！");
+
+            // 验证输出目录中是否有文件生成
+            File[] outputFiles = outputDir.listFiles((dir, name) -> name.endsWith(".csv"));
+            
+            if (outputFiles != null && outputFiles.length > 0) {
+                System.out.println("测试通过: 已生成 " + outputFiles.length + " 个气象一天数据文件");
+
+                // 显示生成的文件信息
+                System.out.println("\n=== 生成的气象一天数据文件 ===");
+                for (File file : outputFiles) {
+                    System.out.println(file.getName() + " (" + (file.length() / 1024) + " KB)");
+                    
+                    // 读取并显示文件内容预览
+                    try (CSVReader reader = new CSVReader(new FileReader(file))) {
+                        List<String[]> allRows = reader.readAll();
+                        
+                        if (allRows.size() > 1) {
+                            System.out.println("  - 包含 " + allRows.size() + " 行数据");
+                            
+                            // 获取该文件中的时次信息
+                            Set<String> timeValues = new HashSet<>();
+                            for (int i = 1; i < Math.min(allRows.size(), 1000); i++) {
+                                if (allRows.get(i).length > 0) {
+                                    String timeValue = allRows.get(i)[0];
+                                    timeValues.add(timeValue);
+                                }
+                            }
+                            
+                            System.out.println("  - 包含的时次数量: " + timeValues.size());
+                            System.out.println("  - 部分时次示例: " + String.join(", ", timeValues.stream().limit(5).toArray(String[]::new)));
+                        } else {
+                            System.out.println("  - 文件格式可能有问题，数据行数不足");
+                        }
+                    }
+                }
+            } else {
+                System.out.println("测试不通过: 未生成任何气象一天数据文件");
+            }
+        } catch (Exception e) {
+            System.out.println("测试失败: 处理过程中发生错误");
+            e.printStackTrace();
+        }
+
+        System.out.println("\n=== 气象一天测试完成 ===");
+        System.out.println("输出目录位置: " + outputDirPath);
     }
 }

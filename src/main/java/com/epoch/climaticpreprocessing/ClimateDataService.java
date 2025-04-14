@@ -73,4 +73,37 @@ public class ClimateDataService {
         
         return outputFilePath;
     }
+    
+    /**
+     * 按照气象一天合并气象数据
+     * 
+     * @param plotDirPath 地面填图数据文件夹路径
+     * @param rainDirPath 降水数据文件夹路径
+     * @param rhDirPath 相对湿度数据文件夹路径
+     * @param outputDirPath 输出目录路径
+     * @throws IOException 如果文件处理过程中发生错误
+     */
+    public void mergeMeteorologyDays(String plotDirPath, String rainDirPath, String rhDirPath, String outputDirPath) throws IOException {
+        // 调用气象一天数据合并处理方法
+        MeteorologyDataMerger.processMeteorologyDays(plotDirPath, rainDirPath, rhDirPath, outputDirPath);
+    }
+    
+    /**
+     * 使用硬编码路径进行气象一天数据合并测试
+     * 
+     * @return 生成的CSV文件路径
+     * @throws IOException 如果文件处理过程中发生错误
+     */
+    public String processMeteorologyDaysSampleData() throws IOException {
+        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
+        String plotDirPath = "E:/data/plot";
+        String rainDirPath = "E:/data/rain1-p";
+        String rhDirPath = "E:/data/rh-p";
+        String outputDirPath = "E:/data/output/meteorology_days";
+        
+        // 调用气象一天数据合并处理方法
+        mergeMeteorologyDays(plotDirPath, rainDirPath, rhDirPath, outputDirPath);
+        
+        return outputDirPath;
+    }
 } 
