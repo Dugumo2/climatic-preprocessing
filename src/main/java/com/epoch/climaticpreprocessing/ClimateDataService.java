@@ -40,4 +40,37 @@ public class ClimateDataService {
         
         return outputFilePath;
     }
+
+    /**
+     * 合并多个时次的气象数据
+     * 
+     * @param plotDirPath 地面填图数据文件夹路径
+     * @param rainDirPath 降水数据文件夹路径
+     * @param rhDirPath 相对湿度数据文件夹路径
+     * @param outputFilePath 输出CSV文件路径
+     * @throws IOException 如果文件处理过程中发生错误
+     */
+    public void mergeMultipleTimeData(String plotDirPath, String rainDirPath, String rhDirPath, String outputFilePath) throws IOException {
+        // 调用多时次数据合并处理方法
+        MeteorologyDataMerger.processMultipleTimeData(plotDirPath, rainDirPath, rhDirPath, outputFilePath);
+    }
+    
+    /**
+     * 使用硬编码路径进行多时次数据合并测试
+     * 
+     * @return 生成的CSV文件路径
+     * @throws IOException 如果文件处理过程中发生错误
+     */
+    public String processMultipleTimeSampleData() throws IOException {
+        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
+        String plotDirPath = "E:/data/plot";
+        String rainDirPath = "E:/data/rain1-p";
+        String rhDirPath = "E:/data/rh-p";
+        String outputFilePath = "E:/data/output/merged_multiple_time_data.csv";
+        
+        // 调用多时次数据合并处理方法
+        mergeMultipleTimeData(plotDirPath, rainDirPath, rhDirPath, outputFilePath);
+        
+        return outputFilePath;
+    }
 } 

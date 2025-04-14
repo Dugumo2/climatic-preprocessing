@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * MeteorologyDataMerger手动测试类
@@ -14,10 +16,20 @@ import java.util.List;
 public class MeteorologyDataMergerManualTest {
 
     /**
-     * 手动测试运行方法
-     * 从指定文件路径读取数据文件，调用合并处理方法，验证结果
+     * 主方法，可以选择运行单时次测试或多时次测试
      */
     public static void main(String[] args) throws IOException {
+            // 运行多时次测试
+            testMultipleTimeDataMerging();
+
+            // 运行单时次测试
+//            testSingleTimeDataMerging();
+    }
+    
+    /**
+     * 单时次数据合并测试
+     */
+    public static void testSingleTimeDataMerging() throws IOException {
         System.out.println("=== 开始气象数据合并测试 ===");
 
         // 指定实际文件路径
@@ -107,6 +119,110 @@ public class MeteorologyDataMergerManualTest {
         }
 
         System.out.println("\n=== 测试完成 ===");
+        System.out.println("输出文件位置: " + outputFilePath);
+    }
+
+    /**
+     * 测试多时次数据合并功能
+     * 从指定目录读取多个时次的数据文件，合并处理后生成单一CSV文件
+     */
+    public static void testMultipleTimeDataMerging() throws IOException {
+        System.out.println("=== 开始多时次气象数据合并测试 ===");
+
+        // 指定实际目录路径
+        String plotDirPath = "F:\\2024大创\\202406\\test-multiplefile\\plot";  // 替换为您实际的目录路径
+        String rainDirPath = "F:\\2024大创\\202406\\test-multiplefile\\rain1-p";
+        String rhDirPath = "F:\\2024大创\\202406\\SURF\\rh-p";
+        String outputFilePath = "F:\\2024大创\\202406\\test\\merged_multiple_time_data.csv";
+
+        // 确认目录存在
+        File plotDir = new File(plotDirPath);
+        File rainDir = new File(rainDirPath);
+        File rhDir = new File(rhDirPath);
+
+        if (!plotDir.exists() || !plotDir.isDirectory() ||
+            !rainDir.exists() || !rainDir.isDirectory() ||
+            !rhDir.exists() || !rhDir.isDirectory()) {
+            System.err.println("错误：输入目录不存在或不是有效目录!");
+            System.err.println("地面填图数据目录: " + plotDirPath + (plotDir.exists() && plotDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("降水数据目录: " + rainDirPath + (rainDir.exists() && rainDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("相对湿度数据目录: " + rhDirPath + (rhDir.exists() && rhDir.isDirectory() ? " [有效]" : " [无效]"));
+            return;
+        }
+
+        System.out.println("使用以下目录进行处理:");
+        System.out.println("地面填图数据目录: " + plotDirPath);
+        System.out.println("降水数据目录: " + rainDirPath);
+        System.out.println("相对湿度数据目录: " + rhDirPath);
+        System.out.println("输出CSV文件: " + outputFilePath);
+
+        System.out.println("开始调用多时次数据合并处理方法...");
+
+        // 调用多时次数据合并方法
+        try {
+            MeteorologyDataMerger.processMultipleTimeData(
+                    plotDirPath,
+                    rainDirPath,
+                    rhDirPath,
+                    outputFilePath
+            );
+
+            System.out.println("多时次数据合并处理成功！");
+
+            // 验证输出文件是否存在
+            File outputFile = new File(outputFilePath);
+            if (outputFile.exists()) {
+                System.out.println("测试通过: 已生成输出文件");
+
+                // 使用OpenCSV读取并显示输出文件内容
+                try (CSVReader reader = new CSVReader(new FileReader(outputFile))) {
+                    List<String[]> allRows = reader.readAll();
+
+                    if (allRows.size() > 1) {
+                        System.out.println("测试通过: 输出文件包含标题行和数据行");
+                        System.out.println("总行数: " + allRows.size());
+
+                        System.out.println("\n=== 输出CSV文件内容预览 ===");
+                        for (int i = 0; i < Math.min(5, allRows.size()); i++) {
+                            // 过滤掉可能的null值，避免输出显示问题
+                            String[] row = allRows.get(i);
+                            String[] displayRow = new String[row.length];
+                            for (int j = 0; j < row.length; j++) {
+                                displayRow[j] = (row[j] == null || row[j].isEmpty()) ? "[空]" : row[j];
+                            }
+                            System.out.println(String.join(", ", displayRow));
+                        }
+
+                        // 检查各个时次
+                        Set<String> timeValues = new HashSet<>();
+                        for (int i = 1; i < allRows.size(); i++) {
+                            if (allRows.get(i).length > 0) {
+                                String timeValue = allRows.get(i)[0];
+                                timeValues.add(timeValue);
+                            }
+                        }
+                        
+                        System.out.println("\n发现的不同时次数量: " + timeValues.size());
+                        System.out.println("时次列表: " + String.join(", ", timeValues));
+                        
+                        if (timeValues.size() > 1) {
+                            System.out.println("测试通过: 输出文件包含多个时次的数据");
+                        } else {
+                            System.out.println("测试不通过: 输出文件只包含一个时次的数据");
+                        }
+                    } else {
+                        System.out.println("测试不通过: 输出文件不包含足够的数据行");
+                    }
+                }
+            } else {
+                System.out.println("测试不通过: 未生成输出文件");
+            }
+        } catch (Exception e) {
+            System.out.println("测试失败: 处理过程中发生错误");
+            e.printStackTrace();
+        }
+
+        System.out.println("\n=== 多时次测试完成 ===");
         System.out.println("输出文件位置: " + outputFilePath);
     }
 }

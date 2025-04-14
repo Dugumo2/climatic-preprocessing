@@ -173,35 +173,56 @@ public class MeteorologyDataMerger {
 
         // 解析第一行（站号、经纬度等基本信息和部分气象参数）
         String[] parts1 = line1.trim().split("\\s+");
-        record[0] = parts1[0]; // sta
-        record[1] = parts1[1]; // lon
-        record[2] = parts1[2]; // lat
-        record[3] = parts1[3]; // ele
-        record[4] = parts1[4]; // stalev
-        record[5] = parts1[5]; // 总云量
-        record[6] = parts1[6]; // 风向
-        record[7] = parts1[7]; // 风速
-        record[8] = parts1[8]; // 海平面气压
-        record[9] = parts1[9]; // 3小时变压
-        record[10] = parts1[10]; // 过去天气1
-        record[11] = parts1[11]; // 过去天气2
+        // 检查站点ID是否为空或格式异常
+        if (parts1.length > 0) {
+            String stationId = parts1[0].trim();
+            // 如果站点ID全为0，打印警告信息
+            if ("0000".equals(stationId)) {
+                System.out.println("警告：发现全0站点ID：" + line1);
+            }
+            record[0] = stationId; // sta
+        } else {
+            System.out.println("警告：无法解析站点ID，行内容：" + line1);
+            record[0] = "unknown"; // 使用默认值
+        }
+
+        // 如果有足够的字段，继续解析
+        if (parts1.length >= 12) {
+            record[1] = parts1[1]; // lon
+            record[2] = parts1[2]; // lat
+            record[3] = parts1[3]; // ele
+            record[4] = parts1[4]; // stalev
+            record[5] = parts1[5]; // 总云量
+            record[6] = parts1[6]; // 风向
+            record[7] = parts1[7]; // 风速
+            record[8] = parts1[8]; // 海平面气压
+            record[9] = parts1[9]; // 3小时变压
+            record[10] = parts1[10]; // 过去天气1
+            record[11] = parts1[11]; // 过去天气2
+        } else {
+            System.out.println("警告：字段数量不足，行内容：" + line1);
+        }
 
         // 解析第二行（降水、云状等其他参数）
         String[] parts2 = line2.trim().split("\\s+");
-        record[12] = parts2[0]; // 6小时降水
-        record[13] = parts2[1]; // 低云状
-        record[14] = parts2[2]; // 低云量
-        record[15] = parts2[3]; // 低云高
-        record[16] = parts2[4]; // 露点
-        record[17] = parts2[5]; // 能见度
-        record[18] = parts2[6]; // 现在天气
-        record[19] = parts2[7]; // 温度
-        record[20] = parts2[8]; // 中云状
-        record[21] = parts2[9]; // 高云状
-        record[22] = parts2[10]; // 标志1
-        record[23] = parts2[11]; // 标志2
-        record[24] = parts2[12]; // 24小时变温
-        record[25] = parts2[13]; // 24小时变压
+        if (parts2.length >= 14) {
+            record[12] = parts2[0]; // 6小时降水
+            record[13] = parts2[1]; // 低云状
+            record[14] = parts2[2]; // 低云量
+            record[15] = parts2[3]; // 低云高
+            record[16] = parts2[4]; // 露点
+            record[17] = parts2[5]; // 能见度
+            record[18] = parts2[6]; // 现在天气
+            record[19] = parts2[7]; // 温度
+            record[20] = parts2[8]; // 中云状
+            record[21] = parts2[9]; // 高云状
+            record[22] = parts2[10]; // 标志1
+            record[23] = parts2[11]; // 标志2
+            record[24] = parts2[12]; // 24小时变温
+            record[25] = parts2[13]; // 24小时变压
+        } else {
+            System.out.println("警告：第二行字段数量不足，行内容：" + line2);
+        }
 
         return record;
     }
@@ -229,15 +250,15 @@ public class MeteorologyDataMerger {
 
             String[] parts = line.split("\\s+");
             if (parts.length >= 5) {
-                String stationId = parts[0];
-                // 跳过站点ID为99999的记录
-                if ("99999".equals(stationId)) {
-                    System.out.println("跳过降水数据中的99999站点数据");
+                String stationId = parts[0].trim();
+                // 跳过站点ID为99999或0000的记录
+                if ("99999".equals(stationId) || "0000".equals(stationId)) {
+                    System.out.println("跳过降水数据中的" + stationId + "站点数据");
                     continue;
                 }
                 
                 String[] record = new String[5];
-                record[0] = parts[0]; // sta
+                record[0] = stationId; // sta
                 record[1] = parts[1]; // lon
                 record[2] = parts[2]; // lat
                 record[3] = parts[3]; // ele
@@ -272,15 +293,15 @@ public class MeteorologyDataMerger {
 
             String[] parts = line.split("\\s+");
             if (parts.length >= 5) {
-                String stationId = parts[0];
-                // 跳过站点ID为99999的记录
-                if ("99999".equals(stationId)) {
-                    System.out.println("跳过相对湿度数据中的99999站点数据");
+                String stationId = parts[0].trim();
+                // 跳过站点ID为99999或0000的记录
+                if ("99999".equals(stationId) || "0000".equals(stationId)) {
+                    System.out.println("跳过相对湿度数据中的" + stationId + "站点数据");
                     continue;
                 }
                 
                 String[] record = new String[5];
-                record[0] = parts[0]; // sta
+                record[0] = stationId; // sta
                 record[1] = parts[1]; // lon
                 record[2] = parts[2]; // lat
                 record[3] = parts[3]; // ele
@@ -305,6 +326,13 @@ public class MeteorologyDataMerger {
         // 首先处理地面填图数据中的站点
         for (String[] plotRecord : plotRecords) {
             String stationId = plotRecord[0];
+            
+            // 检查站点ID是否异常
+            if (stationId == null || stationId.isEmpty() || "0000".equals(stationId)) {
+                System.out.println("警告：跳过无效站点ID：" + (stationId == null ? "null" : stationId));
+                continue;
+            }
+            
             allStations.add(stationId);
             plotStationsCount++;
 
@@ -446,5 +474,172 @@ public class MeteorologyDataMerger {
         }
 
         return sortedData;
+    }
+
+    /**
+     * 处理文件夹中的多个时次数据，将结果合并到单个CSV文件中
+     * @param plotDirPath 地面填图数据文件夹路径
+     * @param rainDirPath 降水数据文件夹路径
+     * @param rhDirPath 相对湿度数据文件夹路径
+     * @param outputFilePath 输出CSV文件路径
+     * @throws IOException 如果文件读写过程中发生错误
+     */
+    public static void processMultipleTimeData(String plotDirPath, String rainDirPath, String rhDirPath, String outputFilePath) throws IOException {
+        File plotDir = new File(plotDirPath);
+        File rainDir = new File(rainDirPath);
+        File rhDir = new File(rhDirPath);
+        
+        if (!plotDir.isDirectory() || !rainDir.isDirectory() || !rhDir.isDirectory()) {
+            throw new IOException("输入路径必须是目录");
+        }
+        
+        // 获取所有地面填图数据文件
+        File[] plotFiles = plotDir.listFiles();
+        if (plotFiles == null || plotFiles.length == 0) {
+            throw new IOException("地面填图数据目录为空");
+        }
+        
+        System.out.println("找到 " + plotFiles.length + " 个地面填图数据文件");
+        
+        // 用于存储所有时次的合并数据
+        List<String[]> allMergedData = new ArrayList<>();
+        // 用于记录已处理过的时次
+        Set<String> processedTimes = new HashSet<>();
+        // 记录标题行
+        String[] header = {"time", "sta", "lon", "lat", "ele", "stalev", "总云量", "风向", "风速", 
+                          "海平面气压", "3小时变压", "过去天气1", "过去天气2", "6小时降水", "低云状", 
+                          "低云量", "低云高", "露点", "能见度", "现在天气", "温度", "中云状", "高云状", 
+                          "标志1", "标志2", "24小时变温", "24小时变压", "rain1", "rh", "p0"};
+        
+        // 处理每个地面填图数据文件
+        for (File plotFile : plotFiles) {
+            String fileName = plotFile.getName();
+            
+            // 查找对应的降水文件和相对湿度文件
+            File rainFile = new File(rainDir, fileName);
+            File rhFile = new File(rhDir, fileName);
+            
+            // 检查三个文件是否都存在
+            if (rainFile.exists() && rhFile.exists()) {
+                System.out.println("处理时次: " + fileName);
+                
+                // 提取时间信息
+                String timeStr = extractTimeFromFilePath(plotFile.getAbsolutePath());
+                
+                // 如果这个时次已经处理过，跳过
+                if (processedTimes.contains(timeStr)) {
+                    System.out.println("时次 " + timeStr + " 已处理过，跳过");
+                    continue;
+                }
+                
+                try {
+                    // 读取各文件数据
+                    String plotData = FileUtils.readFileToString(plotFile, StandardCharsets.UTF_8);
+                    String rainData = FileUtils.readFileToString(rainFile, StandardCharsets.UTF_8);
+                    String rhData = FileUtils.readFileToString(rhFile, StandardCharsets.UTF_8);
+                    
+                    // 解析数据
+                    List<String[]> plotRecords = parsePlotData(plotData);
+                    Map<String, String[]> rainRecords = parseRainData(rainData);
+                    Map<String, String[]> rhRecords = parseRhData(rhData);
+                    
+                    // 打印一些站点ID以便检查
+                    System.out.println("地面填图数据的第一个站点ID: " + (plotRecords.isEmpty() ? "无" : plotRecords.get(0)[0]));
+                    if (plotRecords.size() > 1) {
+                        System.out.println("地面填图数据的第二个站点ID: " + plotRecords.get(1)[0]);
+                    }
+                    
+                    // 合并当前时次的数据
+                    List<String[]> mergedData = mergeData(plotRecords, rainRecords, rhRecords, timeStr);
+                    
+                    // 验证合并后的数据
+                    int invalidStaCount = 0;
+                    for (String[] record : mergedData) {
+                        if (record == null) {
+                            System.out.println("警告：合并后的记录为null");
+                            continue;
+                        }
+                        
+                        if (record.length < 2 || record[1] == null || record[1].isEmpty() || "0000".equals(record[1])) {
+                            invalidStaCount++;
+                            if (invalidStaCount <= 5) { // 仅打印前5个异常记录，避免输出过多
+                                System.out.println("警告：合并后发现无效站点ID: " + (record.length < 2 ? "数组长度不足" : record[1]));
+                            }
+                        }
+                    }
+                    
+                    if (invalidStaCount > 0) {
+                        System.out.println("共发现 " + invalidStaCount + " 条无效站点ID记录");
+                    }
+                    
+                    // 将合并后的数据添加到总数据集
+                    allMergedData.addAll(mergedData);
+                    
+                    // 记录已处理的时次
+                    processedTimes.add(timeStr);
+                    
+                    System.out.println("时次 " + timeStr + " 处理完成，添加 " + mergedData.size() + " 条记录");
+                } catch (Exception e) {
+                    System.err.println("处理文件 " + fileName + " 时出错: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("跳过文件 " + fileName + "，因为缺少对应的降水或湿度文件");
+            }
+        }
+        
+        System.out.println("所有时次处理完成，共有 " + allMergedData.size() + " 条记录");
+        
+        // 检查最终合并的数据中是否有无效站点ID
+        int finalInvalidStaCount = 0;
+        for (String[] record : allMergedData) {
+            if (record == null) continue;
+            
+            if (record.length < 2 || record[1] == null || record[1].isEmpty() || "0000".equals(record[1])) {
+                finalInvalidStaCount++;
+                if (finalInvalidStaCount <= 10) { // 仅打印前10个异常记录
+                    System.out.println("最终数据中存在无效站点ID: " + (record.length < 2 ? "数组长度不足" : record[1]));
+                    if (record.length >= 5) {
+                        System.out.println("  相关信息 - 时间: " + record[0] + ", 经度: " + record[2] + ", 纬度: " + record[3]);
+                    }
+                }
+            }
+        }
+        
+        if (finalInvalidStaCount > 0) {
+            System.out.println("最终数据中共有 " + finalInvalidStaCount + " 条记录包含无效站点ID");
+        }
+        
+        // 生成CSV文件
+        File outputFile = new File(outputFilePath);
+        
+        // 确保输出目录存在
+        if (!outputFile.getParentFile().exists()) {
+            outputFile.getParentFile().mkdirs();
+        }
+        
+        try (CSVWriter writer = new CSVWriter(new FileWriter(outputFile), 
+                                            ',',              // 分隔符使用逗号
+                                            '\0',             // 不使用引号字符
+                                            '\\',             // 转义字符
+                                            "\n")) {          // 行结束符
+            
+            // 写入标题行
+            writer.writeNext(header);
+            
+            // 处理数据行：确保空值为空字符串而不是逗号
+            for (String[] record : allMergedData) {
+                if (record == null) continue; // 跳过null记录
+                // 处理数据中的空值，将","替换为空字符串
+                for (int i = 0; i < record.length; i++) {
+                    if (record[i] != null && record[i].equals(",")) {
+                        record[i] = ""; // 使用空字符串代替","
+                    }
+                }
+                writer.writeNext(record);
+            }
+        }
+        
+        System.out.println("多时次数据合并完成，输出文件: " + outputFilePath);
     }
 } 
