@@ -1,5 +1,6 @@
 package com.epoch.climaticpreprocessing;
 
+import com.epoch.climaticpreprocessing.domain.enums.TimeScale;
 import com.epoch.climaticpreprocessing.util.MeteorologyDataMerger;
 import com.opencsv.CSVReader;
 
@@ -28,12 +29,30 @@ public class MeteorologyDataMergerManualTest {
                 case "multiple":
                     testMultipleTimeDataMerging();
                     break;
-                case "meteorology":
+                case "day":
                     testMeteorologyDayProcessing();
+                    break;
+                case "all":
+                    testAllDataProcessing();
+                    break;
+                case "year":
+                    testYearDataProcessing();
+                    break;
+                case "season":
+                    testSeasonDataProcessing();
+                    break;
+                case "month":
+                    testMonthDataProcessing();
+                    break;
+                case "dekad":
+                    testDekadDataProcessing();
+                    break;
+                case "pentad":
+                    testPentadDataProcessing();
                     break;
                 default:
                     System.out.println("未知的测试类型: " + args[0]);
-                    System.out.println("可用选项: single, multiple, meteorology");
+                    System.out.println("可用选项: single, multiple, day, all, year, season, month, dekad, pentad");
             }
         } else {
             // 默认运行气象一天测试
@@ -337,6 +356,173 @@ public class MeteorologyDataMergerManualTest {
         }
 
         System.out.println("\n=== 气象一天测试完成 ===");
+        System.out.println("输出目录位置: " + outputDirPath);
+    }
+
+    /**
+     * 测试处理全部数据
+     * 将所有时次的数据合并到单个文件中
+     */
+    public static void testAllDataProcessing() throws IOException {
+        System.out.println("=== 开始全部数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.ALL, "all_data");
+    }
+
+    /**
+     * 测试处理年度数据
+     * 按照年份合并数据
+     */
+    public static void testYearDataProcessing() throws IOException {
+        System.out.println("=== 开始年度数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.YEAR, "yearly_data");
+    }
+
+    /**
+     * 测试处理季度数据
+     * 按照季节（春、夏、秋、冬）合并数据
+     */
+    public static void testSeasonDataProcessing() throws IOException {
+        System.out.println("=== 开始季度数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.SEASON, "seasonal_data");
+    }
+
+    /**
+     * 测试处理月度数据
+     * 按照月份合并数据
+     */
+    public static void testMonthDataProcessing() throws IOException {
+        System.out.println("=== 开始月度数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.MONTH, "monthly_data");
+    }
+
+    /**
+     * 测试处理旬数据
+     * 按照旬（每月三旬）合并数据
+     */
+    public static void testDekadDataProcessing() throws IOException {
+        System.out.println("=== 开始旬数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.DEKAD, "dekad_data");
+    }
+
+    /**
+     * 测试处理侯数据
+     * 按照侯（每月六侯）合并数据
+     */
+    public static void testPentadDataProcessing() throws IOException {
+        System.out.println("=== 开始侯数据合并测试 ===");
+        testSpecificTimeScaleProcessing(TimeScale.PENTAD, "pentad_data");
+    }
+
+    /**
+     * 通用的时间尺度处理测试方法
+     * 
+     * @param timeScale 要测试的时间尺度
+     * @param outputDirSuffix 输出目录后缀
+     * @throws IOException 如果处理过程中发生错误
+     */
+    private static void testSpecificTimeScaleProcessing(TimeScale timeScale, String outputDirSuffix) throws IOException {
+        // 指定实际目录路径
+        String plotDirPath = "F:\\2024大创\\202406\\SURF\\plot";  // 替换为您实际的目录路径
+        String rainDirPath = "F:\\2024大创\\202406\\SURF\\rain1-p";
+        String rhDirPath = "F:\\2024大创\\202406\\SURF\\rh-p";
+        String outputDirPath = "F:\\2024大创\\202406\\test\\" + outputDirSuffix;
+
+        // 确认目录存在
+        File plotDir = new File(plotDirPath);
+        File rainDir = new File(rainDirPath);
+        File rhDir = new File(rhDirPath);
+        File outputDir = new File(outputDirPath);
+
+        if (!plotDir.exists() || !plotDir.isDirectory() ||
+            !rainDir.exists() || !rainDir.isDirectory() ||
+            !rhDir.exists() || !rhDir.isDirectory()) {
+            System.err.println("错误：输入目录不存在或不是有效目录!");
+            System.err.println("地面填图数据目录: " + plotDirPath + (plotDir.exists() && plotDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("降水数据目录: " + rainDirPath + (rainDir.exists() && rainDir.isDirectory() ? " [有效]" : " [无效]"));
+            System.err.println("相对湿度数据目录: " + rhDirPath + (rhDir.exists() && rhDir.isDirectory() ? " [有效]" : " [无效]"));
+            return;
+        }
+
+        // 确保输出目录存在
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+
+        System.out.println("使用以下目录进行处理:");
+        System.out.println("地面填图数据目录: " + plotDirPath);
+        System.out.println("降水数据目录: " + rainDirPath);
+        System.out.println("相对湿度数据目录: " + rhDirPath);
+        System.out.println("输出目录: " + outputDirPath);
+        System.out.println("时间尺度: " + timeScale.name() + " (" + timeScale.getDescription() + ")");
+
+        System.out.println("开始调用数据处理方法...");
+
+        // 调用按时间尺度处理数据的方法
+        try {
+            MeteorologyDataMerger.processMeteorologyByTimeScale(
+                    plotDir,
+                    rainDir,
+                    rhDir,
+                    outputDir,
+                    timeScale
+            );
+
+            System.out.println(timeScale.getDescription() + "数据处理成功！");
+
+            // 验证输出目录中是否有文件生成
+            File[] outputFiles = outputDir.listFiles((dir, name) -> name.endsWith(".csv"));
+            
+            if (outputFiles != null && outputFiles.length > 0) {
+                System.out.println("测试通过: 已生成 " + outputFiles.length + " 个" + timeScale.getDescription() + "数据文件");
+
+                // 显示生成的文件信息
+                System.out.println("\n=== 生成的" + timeScale.getDescription() + "数据文件 ===");
+                for (File file : outputFiles) {
+                    System.out.println(file.getName() + " (" + (file.length() / 1024) + " KB)");
+                    
+                    // 读取并显示文件内容预览
+                    try (CSVReader reader = new CSVReader(new FileReader(file))) {
+                        List<String[]> allRows = reader.readAll();
+                        
+                        if (allRows.size() > 1) {
+                            System.out.println("  - 包含 " + allRows.size() + " 行数据");
+                            
+                            // 获取该文件中的时次信息
+                            Set<String> timeValues = new HashSet<>();
+                            for (int i = 1; i < Math.min(allRows.size(), 1000); i++) {
+                                if (allRows.get(i).length > 0) {
+                                    String timeValue = allRows.get(i)[0];
+                                    timeValues.add(timeValue);
+                                }
+                            }
+                            
+                            System.out.println("  - 包含的时次数量: " + timeValues.size());
+                            System.out.println("  - 部分时次示例: " + String.join(", ", timeValues.stream().limit(5).toArray(String[]::new)));
+                            
+                            // 显示数据行示例
+                            if (allRows.size() > 1) {
+                                System.out.println("  - 数据行示例:");
+                                String[] row = allRows.get(1);
+                                String[] displayRow = new String[Math.min(10, row.length)]; // 仅显示前10个字段，避免过长
+                                for (int j = 0; j < Math.min(10, row.length); j++) {
+                                    displayRow[j] = (row[j] == null || row[j].isEmpty()) ? "[空]" : row[j];
+                                }
+                                System.out.println("    " + String.join(", ", displayRow) + (row.length > 10 ? "..." : ""));
+                            }
+                        } else {
+                            System.out.println("  - 文件格式可能有问题，数据行数不足");
+                        }
+                    }
+                }
+            } else {
+                System.out.println("测试不通过: 未生成任何" + timeScale.getDescription() + "数据文件");
+            }
+        } catch (Exception e) {
+            System.out.println("测试失败: 处理过程中发生错误");
+            e.printStackTrace();
+        }
+
+        System.out.println("\n=== " + timeScale.getDescription() + "测试完成 ===");
         System.out.println("输出目录位置: " + outputDirPath);
     }
 }

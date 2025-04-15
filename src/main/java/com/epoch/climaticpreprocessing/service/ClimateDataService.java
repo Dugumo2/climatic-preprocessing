@@ -1,182 +1,167 @@
 package com.epoch.climaticpreprocessing.service;
 
-import com.epoch.climaticpreprocessing.util.MeteorologyDataMerger;
+import com.epoch.climaticpreprocessing.domain.dto.MergeRequestDTO;
+import com.epoch.climaticpreprocessing.domain.enums.TimeScale;
+import com.epoch.climaticpreprocessing.domain.po.MeteorologyData;
+import com.epoch.climaticpreprocessing.domain.po.PlotData;
+import com.epoch.climaticpreprocessing.domain.po.RainData;
+import com.epoch.climaticpreprocessing.domain.po.RhData;
+import com.epoch.climaticpreprocessing.util.*;
+import org.apache.commons.io.FileUtils;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * 气象数据处理服务
- * 提供气象数据合并功能的服务类
+ * 气候数据处理服务
  */
+@Service
 public class ClimateDataService {
-    
+
     /**
-     * 合并气象数据文件
-     * 
+     * 合并气象数据
+     *
      * @param plotFilePath 地面填图数据文件路径
      * @param rainFilePath 降水数据文件路径
      * @param rhFilePath 相对湿度数据文件路径
-     * @param outputFilePath 输出CSV文件路径
+     * @param outputFilePath 输出文件路径
      * @throws IOException 如果文件处理过程中发生错误
      */
     public void mergeMeteorologicalData(String plotFilePath, String rainFilePath, String rhFilePath, String outputFilePath) throws IOException {
-        // 调用数据合并处理工具类
+        // 使用MeteorologyDataMerger工具类处理数据合并
         MeteorologyDataMerger.mergeAndProcessData(plotFilePath, rainFilePath, rhFilePath, outputFilePath);
-    }
-    
-    /**
-     * 使用硬编码路径进行测试
-     * 
-     * @return 生成的CSV文件路径
-     * @throws IOException 如果文件处理过程中发生错误
-     */
-    public String processSampleData() throws IOException {
-        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
-        String plotFilePath = "E:/data/plot.txt";
-        String rainFilePath = "E:/data/rain1-p.txt";
-        String rhFilePath = "E:/data/rh-p.txt";
-        String outputFilePath = "E:/data/output/merged_data.csv";
-        
-        // 调用数据合并处理方法
-        mergeMeteorologicalData(plotFilePath, rainFilePath, rhFilePath, outputFilePath);
-        
-        return outputFilePath;
     }
 
     /**
-     * 合并多个时次的气象数据
-     * 
-     * @param plotDirPath 地面填图数据文件夹路径
-     * @param rainDirPath 降水数据文件夹路径
-     * @param rhDirPath 相对湿度数据文件夹路径
-     * @param outputFilePath 输出CSV文件路径
+     * 处理合并请求
+     *
+     * @param request 合并请求DTO
      * @throws IOException 如果文件处理过程中发生错误
      */
-    public void mergeMultipleTimeData(String plotDirPath, String rainDirPath, String rhDirPath, String outputFilePath) throws IOException {
-        // 调用多时次数据合并处理方法
-        MeteorologyDataMerger.processMultipleTimeData(plotDirPath, rainDirPath, rhDirPath, outputFilePath);
+    public void processMergeRequest(MergeRequestDTO request) throws IOException {
+        if (request.getTimeScale() != null) {
+            // 判断是目录路径处理还是文件路径处理
+            if (request.getPlotDirPath() != null && !request.getPlotDirPath().isEmpty()) {
+                // 按时间尺度处理数据（目录路径）
+                processDataByTimeScale(
+                    new File(request.getPlotDirPath()),
+                    new File(request.getRainDirPath()),
+                    new File(request.getRhDirPath()),
+                    new File(request.getOutputDirPath()),
+                    request.getTimeScale()
+                );
+            } else if (request.getPlotFilePath() != null && !request.getPlotFilePath().isEmpty()) {
+                // 按时间尺度处理数据（文件路径，输出到目录）
+                File outputDir = new File(request.getOutputFilePath()).getParentFile();
+                if (!outputDir.exists()) {
+                    outputDir.mkdirs();
+                }
+                
+                // 直接处理单个数据集
+                mergeMeteorologicalData(
+                    request.getPlotFilePath(),
+                    request.getRainFilePath(),
+                    request.getRhFilePath(),
+                    request.getOutputFilePath()
+                );
+            } else {
+                throw new IOException("必须提供文件路径或目录路径");
+            }
+        } else {
+            // 直接处理单个数据集
+            mergeMeteorologicalData(
+                request.getPlotFilePath(),
+                request.getRainFilePath(),
+                request.getRhFilePath(),
+                request.getOutputFilePath()
+            );
+        }
     }
-    
+
     /**
-     * 使用硬编码路径进行多时次数据合并测试
-     * 
-     * @return 生成的CSV文件路径
+     * 直接使用底层工具类进行数据处理的示例
+     *
+     * @param plotFilePath 地面填图数据文件路径
+     * @param rainFilePath 降水数据文件路径
+     * @param rhFilePath 相对湿度数据文件路径
+     * @param outputFilePath 输出文件路径
      * @throws IOException 如果文件处理过程中发生错误
      */
-    public String processMultipleTimeSampleData() throws IOException {
-        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
-        String plotDirPath = "E:/data/plot";
-        String rainDirPath = "E:/data/rain1-p";
-        String rhDirPath = "E:/data/rh-p";
-        String outputFilePath = "E:/data/output/merged_multiple_time_data.csv";
+    public void processDataDirectly(String plotFilePath, String rainFilePath, String rhFilePath, String outputFilePath) throws IOException {
+        // 读取文件内容
+        String plotData = FileUtils.readFileToString(new File(plotFilePath), StandardCharsets.UTF_8);
+        String rainData = FileUtils.readFileToString(new File(rainFilePath), StandardCharsets.UTF_8);
+        String rhData = FileUtils.readFileToString(new File(rhFilePath), StandardCharsets.UTF_8);
+
+        // 提取时间信息
+        String timeStr = FileUtil.extractTimeFromFilePath(plotFilePath);
         
-        // 调用多时次数据合并处理方法
-        mergeMultipleTimeData(plotDirPath, rainDirPath, rhDirPath, outputFilePath);
+        // 使用DataParser解析数据
+        List<PlotData> plotRecords = DataParser.parsePlotData(plotData);
+        Map<String, RainData> rainRecords = DataParser.parseRainData(rainData);
+        Map<String, RhData> rhRecords = DataParser.parseRhData(rhData);
         
-        return outputFilePath;
+        // 使用DataMerger合并数据
+        List<MeteorologyData> mergedData = DataMerger.mergeData(plotRecords, rainRecords, rhRecords, timeStr);
+        
+        // 使用CsvExporter导出CSV
+        CsvExporter.exportMeteorologyDataToCsv(mergedData, outputFilePath);
     }
-    
-    /**
-     * 按照气象一天合并气象数据
-     * 
-     * @param plotDirPath 地面填图数据文件夹路径
-     * @param rainDirPath 降水数据文件夹路径
-     * @param rhDirPath 相对湿度数据文件夹路径
-     * @param outputDirPath 输出目录路径
-     * @throws IOException 如果文件处理过程中发生错误
-     */
-    public void mergeMeteorologyDays(String plotDirPath, String rainDirPath, String rhDirPath, String outputDirPath) throws IOException {
-        // 调用气象一天数据合并处理方法
-        File plotDir = new File(plotDirPath);
-        File rainDir = new File(rainDirPath);
-        File rhDir = new File(rhDirPath);
-        File outputDir = new File(outputDirPath);
-        
-        // 使用更新后的processMeteorologyDays方法
-        MeteorologyDataMerger.processMeteorologyDays(plotDir, rainDir, rhDir, outputDir);
-    }
-    
-    /**
-     * 使用硬编码路径进行气象一天数据合并测试
-     * 
-     * @return 生成的CSV文件路径
-     * @throws IOException 如果文件处理过程中发生错误
-     */
-    public String processMeteorologyDaysSampleData() throws IOException {
-        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
-        String plotDirPath = "E:/data/plot";
-        String rainDirPath = "E:/data/rain1-p";
-        String rhDirPath = "E:/data/rh-p";
-        String outputDirPath = "E:/data/output/meteorology_days";
-        
-        // 调用气象一天数据合并处理方法
-        mergeMeteorologyDays(plotDirPath, rainDirPath, rhDirPath, outputDirPath);
-        
-        return outputDirPath;
-    }
-    
+
     /**
      * 按照指定时间尺度处理气象数据
-     * 
-     * @param plotDirPath 地面填图数据文件夹路径
-     * @param rainDirPath 降水数据文件夹路径
-     * @param rhDirPath 相对湿度数据文件夹路径
-     * @param outputDirPath 输出目录路径
+     *
+     * @param plotDir 地面填图数据目录
+     * @param rainDir 降水数据目录
+     * @param rhDir 相对湿度数据目录
+     * @param outputDir 输出目录
      * @param timeScale 时间尺度
      * @throws IOException 如果文件处理过程中发生错误
      */
-    public void processMeteorologyByTimeScale(String plotDirPath, String rainDirPath, String rhDirPath, 
-                                              String outputDirPath, MeteorologyDataMerger.TimeScale timeScale) throws IOException {
-        File plotDir = new File(plotDirPath);
-        File rainDir = new File(rainDirPath);
-        File rhDir = new File(rhDirPath);
-        File outputDir = new File(outputDirPath);
-        
-        // 调用按时间尺度处理数据的方法
+    public void processDataByTimeScale(File plotDir, File rainDir, File rhDir, File outputDir, TimeScale timeScale) throws IOException {
         MeteorologyDataMerger.processMeteorologyByTimeScale(plotDir, rainDir, rhDir, outputDir, timeScale);
     }
-    
+
     /**
-     * 处理所有时间尺度的气象数据
-     * 
-     * @param plotDirPath 地面填图数据文件夹路径
-     * @param rainDirPath 降水数据文件夹路径
-     * @param rhDirPath 相对湿度数据文件夹路径
-     * @param outputDirPath 输出根目录路径
+     * 处理所有时间尺度的数据
+     *
+     * @param plotDir 地面填图数据目录
+     * @param rainDir 降水数据目录
+     * @param rhDir 相对湿度数据目录
+     * @param outputDir 输出目录
      * @throws IOException 如果文件处理过程中发生错误
      */
-    public void processAllTimeScales(String plotDirPath, String rainDirPath, String rhDirPath, String outputDirPath) throws IOException {
-        // 处理所有时间尺度的数据
-        for (MeteorologyDataMerger.TimeScale timeScale : MeteorologyDataMerger.TimeScale.values()) {
-            // 为每个时间尺度创建单独的输出目录
-            String scaleDirPath = outputDirPath + "/" + timeScale.name().toLowerCase();
-            File scaleDir = new File(scaleDirPath);
-            if (!scaleDir.exists()) {
-                scaleDir.mkdirs();
+    public void processAllTimeScales(File plotDir, File rainDir, File rhDir, File outputDir) throws IOException {
+        // 遍历所有时间尺度并处理
+        for (TimeScale timeScale : TimeScale.values()) {
+            File timeScaleOutputDir = new File(outputDir, timeScale.getDescription());
+            if (!timeScaleOutputDir.exists()) {
+                timeScaleOutputDir.mkdirs();
             }
             
-            // 处理该时间尺度的数据
-            processMeteorologyByTimeScale(plotDirPath, rainDirPath, rhDirPath, scaleDirPath, timeScale);
+            processDataByTimeScale(plotDir, rainDir, rhDir, timeScaleOutputDir, timeScale);
         }
     }
     
     /**
-     * 使用硬编码路径处理所有时间尺度的数据
+     * 获取所有时间尺度目录列表
      * 
-     * @return 输出目录路径
-     * @throws IOException 如果文件处理过程中发生错误
+     * @param baseDir 基础目录
+     * @return 包含所有时间尺度子目录的Map，键为时间尺度，值为对应的目录File对象
      */
-    public String processAllTimeScalesSampleData() throws IOException {
-        // 假设这些路径是实际存在的，真实使用时会被替换为前端传递的路径
-        String plotDirPath = "E:/data/plot";
-        String rainDirPath = "E:/data/rain1-p";
-        String rhDirPath = "E:/data/rh-p";
-        String outputDirPath = "E:/data/output/all_scales";
+    public Map<TimeScale, File> getAllTimeScaleDirectories(File baseDir) {
+        Map<TimeScale, File> timeScaleDirs = new HashMap<>();
         
-        // 处理所有时间尺度
-        processAllTimeScales(plotDirPath, rainDirPath, rhDirPath, outputDirPath);
+        for (TimeScale timeScale : TimeScale.values()) {
+            File timeScaleDir = new File(baseDir, timeScale.getDescription());
+            timeScaleDirs.put(timeScale, timeScaleDir);
+        }
         
-        return outputDirPath;
+        return timeScaleDirs;
     }
 } 
