@@ -1,5 +1,6 @@
 package com.epoch.climaticpreprocessing;
 
+import com.epoch.climaticpreprocessing.util.MeteorologyDataMerger;
 import com.opencsv.CSVReader;
 
 import java.io.File;
@@ -285,10 +286,10 @@ public class MeteorologyDataMergerManualTest {
         // 调用气象一天数据合并方法
         try {
             MeteorologyDataMerger.processMeteorologyDays(
-                    plotDirPath,
-                    rainDirPath,
-                    rhDirPath,
-                    outputDirPath
+                    plotDir,
+                    rainDir,
+                    rhDir,
+                    outputDir
             );
 
             System.out.println("气象一天数据合并处理成功！");
